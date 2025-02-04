@@ -71,4 +71,8 @@ class Order extends Model
     {
         return self::with('products')->where('id', $orderId)->first();
     }
+
+    public static function findOrFailOrder($id){
+        return self::findOrFail($id);
+    }
 }
