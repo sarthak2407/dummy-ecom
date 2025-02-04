@@ -74,7 +74,6 @@
 
 @if (session('success'))
     <script>
-        alert(1);
         setTimeout(function() {
             const alert = document.querySelector('div[style*="background-color: #28a745"]');
             if (alert) {
