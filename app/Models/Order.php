@@ -44,4 +44,31 @@ class Order extends Model
         return $this->belongsToMany(Product::class, 'order_items')
             ->withPivot('quantity', 'price');
     }
+
+    public static function createOrders(int $userId, float $totalAmt, string $address, string $paymentMethod):mixed{
+        return self::create([
+            'user_id' => $userId,
+            'total_amount' => $totalAmt,
+            'shipping_address' => $address,
+            'payment_method' => $paymentMethod,
+            'status' => 'pending'
+        ]);
+    }
+
+    public static function getOrdersWithProducts(int $id):mixed{
+        return self::with('products')->findOrFail($id);
+    }
+
+    public static function getUserOrders($userId, $perPage = 10)
+    {
+        return self::with('products')
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
+    }
+
+    public static function getOrderWithProducts($orderId)
+    {
+        return self::with('products')->where('id', $orderId)->first();
+    }
 }

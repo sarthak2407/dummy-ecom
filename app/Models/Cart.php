@@ -11,7 +11,21 @@ class Cart extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id'];
+     /**
+     * Maintain created_at and updated_at automatically
+     *
+     * @var boolean
+     */
+    public $timestamps = true;
+
+    /**
+     * Maintain created_by and updated_by automatically
+     *
+     * @var boolean
+     */
+    public $userstamps = true;
+
+    protected $fillable = ['user_id','created_at','updated_at'];
 
     public function user(): BelongsTo
     {
@@ -21,5 +35,15 @@ class Cart extends Model
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class)->withPivot('quantity');
+    }
+
+    public static function getOrCreateCartForUser ($userId)
+    {
+        return self::firstOrCreate(['user_id' => $userId]);
+    }
+
+    public static function getCartWithProductsForUser ($userId)
+    {
+        return self::with('products')->where('user_id', $userId)->first();
     }
 }

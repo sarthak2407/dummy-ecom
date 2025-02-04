@@ -6,44 +6,31 @@ use App\Models\Cart;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\OrderItem;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 
 class CartController extends Controller
 {
-    // public function addToCart(Request $request, $productId)
-    // {
-    //     $product = Product::findOrFail($productId);
-    //     $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
-        
-    //     $cart->products()->attach($productId, ['quantity' => $request->quantity]);
-
-    //     return redirect()->back()->with('success', 'Product added to cart!');
-    // }
 
     public function addToCart($encryptedProductId, Request $request)
     {
         try {
-            // Decrypt the productId
-            $productId = Crypt::decryptString($encryptedProductId);
-            
-            // Find the product using the decrypted ID
-            $product = Product::findOrFail($productId);
-            
-            // Get the quantity from the request
-            // $quantity = $request->input('quantity', 1);
-            $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
-        
-            $cart->products()->attach($productId, ['quantity' => $request->quantity]);
+            // Use the new method to find the product
+            $product = Product::findByEncryptedId($encryptedProductId);
 
-            // Your existing cart logic here
-            // Example: add to session or cart
-            // Cart::add($product, $quantity);
+            // Get the quantity from the request
+            $quantity = $request->input('quantity', 1);
+
+            // Use the new method in the Cart model to get or create the cart
+            $cart = Cart::getOrCreateCartForUser (Auth::id());
+
+            // Attach the product to the cart with the specified quantity
+            $cart->products()->attach($product->id, ['quantity' => $quantity]);
 
             return redirect()->route('dashboard')->with('success', 'Product added to cart!');
         } catch (\Exception $e) {
-            dd($e);
             return back()->with('error', 'Invalid product.');
         }
     }
@@ -51,13 +38,13 @@ class CartController extends Controller
 
     public function viewCart()
     {
-        $cart = Cart::with('products')->where('user_id', Auth::id())->first()->toArray();
+        $cart = Cart::getCartWithProductsForUser(Auth::id())->toArray();
         return view('cart.index', compact('cart'));
     }
 
     public function placeOrder()
     {
-        $cart = Cart::with('products')->where('user_id', Auth::id())->first();
+        $cart = Cart::getCartWithProductsForUser(Auth::id());
 
         if (!$cart || $cart->products->isEmpty()) {
             return redirect()->back()->with('error', 'Your cart is empty!');
@@ -88,25 +75,22 @@ class CartController extends Controller
 
     public function viewOrders()
     {
-        $orders = Order::with('products')
-            ->where('user_id', Auth::id())
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $orders = Order::getUserOrders(Auth::id());
 
         return view('accounts.orders', compact('orders'));
     }
     public function showOrderProduct(Request $request)
     {
-        $orders = Order::with('products')->where('id',$request->order_id)->first();
-        $products = $orders->products;
-        return view('accounts.products', compact('products'));
-
-        // return response()->json([
-        //     'name' => $product->name,
-        //     'description' => $product->description,
-        //     'price' => $product->price,
-        //     'category' => $product->category->name, // Assuming category is a relationship
-        //     'stock' => $product->stock,
-        // ]);
+        // Using the new method in the Order model
+        $orders = Order::getOrderWithProducts($request->order_id);
+        
+        // Make sure to check if the order exists
+        if ($orders) {
+            $products = $orders->products;
+            return view('accounts.products', compact('products'));
+        }
+    
+        // Optionally, handle the case where the order does not exist
+        return redirect()->back()->with('error', 'Order not found.');
     }
 }

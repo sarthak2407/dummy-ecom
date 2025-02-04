@@ -9,8 +9,8 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Retrieve all products from the database
-        $products = Product::all();
+        // Retrieve all products using the model's method
+        $products = Product::getAllProducts();
 
         // Return the dashboard view with the products data
         return view('dashboard', compact('products'));
@@ -19,14 +19,8 @@ class DashboardController extends Controller
     public function search(Request $request)
     {
         $search = $request->input('search');
-        if (empty($search)) {
-            $products = Product::paginate(10); // Return paginated results
-        } else {
-            // Search for products with the given search term
-            $products = Product::where('name', 'like', "%$search%")->paginate(10); // Paginate results
-        }
+        $products = Product::search($search); // Call the search method in the Product model
     
-
         return view('dashboard', ['products' => $products]);
     }
 }
